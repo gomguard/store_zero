@@ -442,11 +442,18 @@
         // --- Tax & Modal ---
         const taxBrackets = [{limit:14000000,rate:0.06,deduction:0},{limit:50000000,rate:0.15,deduction:1260000},{limit:88000000,rate:0.24,deduction:5760000},{limit:150000000,rate:0.35,deduction:15440000},{limit:300000000,rate:0.38,deduction:19940000},{limit:500000000,rate:0.40,deduction:25940000},{limit:1000000000,rate:0.42,deduction:35940000},{limit:Infinity,rate:0.45,deduction:65940000}];
         function calculatePreTaxIncome(annualNetTarget) {
+            // 1. 목표 금액이 0원 이하면 세금도 0원 (버그 수정)
+            if (annualNetTarget <= 0) return {gross: 0, bracket: '면세(0원)'};
+
             for (let i=0; i<taxBrackets.length; i++) {
                 const b = taxBrackets[i];
                 const estimatedGross = (annualNetTarget - b.deduction)/(1-b.rate);
                 const prevLimit = (i===0)?0:taxBrackets[i-1].limit;
-                if (estimatedGross>prevLimit && estimatedGross<=b.limit) return {gross:estimatedGross, bracket:`${(b.rate*100)}% 구간`};
+                
+                // 2. 부등호를 > 에서 >= 로 변경 (경계값 처리 강화)
+                if (estimatedGross >= prevLimit && estimatedGross <= b.limit) {
+                    return {gross:estimatedGross, bracket:`${(b.rate*100)}% 구간`};
+                }
             }
             const lastB = taxBrackets[taxBrackets.length-1];
             return {gross:(annualNetTarget-lastB.deduction)/(1-lastB.rate), bracket:"45% 구간"};
@@ -479,3 +486,4 @@
     </script>
 </body>
 </html>
+
